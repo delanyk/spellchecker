@@ -90,12 +90,9 @@ Raw data from tweets in two different langauges had a lot to filter. Websites, h
 ## Running the Code
 <br/>
 <br/>
-This can be run directly in the notebook.
-However you may require jupyter-notebook as well.
-
 
 ```bash
-sudo apt-get install jupyter-notebook
+python3 main.py [path to file]
 ```
 <br/>
 <br/>
