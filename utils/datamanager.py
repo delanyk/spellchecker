@@ -20,15 +20,15 @@ class DataManager:
         pass
 
     @staticmethod
-    def load_data(filename):
-        with open('filename', 'r') as f:
+    def load_data(filename: str) -> list:
+        with open(filename, 'r') as f:
             raw_text = f.read()
         tab_seperated = [item.split('\t') for item in raw_text.split('\n') if len(item.split('\t')) >= 4]
 
         return tab_seperated
 
     @staticmethod
-    def filter(data):
+    def filter(data: list) -> dict:
         """
         """
         # Building our tweet filter

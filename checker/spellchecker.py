@@ -70,18 +70,19 @@ class Spellchecker:
                     "de" : "abcdefghijklmnopqrstuvwxyzäöüß"
                     }
 
+        # Load language dictionaries
+        with open("data/english.dic", "r") as f:
+            for row in f:
+                self.en_dic.add(row.strip().lower())
+        with open("data/german.dic", "r", encoding="latin-1") as f:
+            for row in f:
+                if len(row) > 1:
+                    self.de_dic.add(row.strip().lower())
         self.en_dic |= add_english
         self.de_dic |= add_german
         if acronyms:
             self.en_dic |= add_acronyms
             self.de_dic |= add_acronyms
-        with open("english.dic", "r") as f:
-            for row in f:
-                self.en_dic.add(row.strip().lower())
-        with open("german.dic", "r", encoding="latin-1") as f:
-            for row in f:
-                if len(row) > 1:
-                    self.de_dic.add(row.strip().lower())
 
     def is_language(self, term, data):
         """
@@ -101,9 +102,9 @@ class Spellchecker:
                 if i in stop_en:
                     en_score += 1
         if de_score > en_score:
-            return "german"
+            return "de"
         elif de_score < en_score:
-            return "english"
+            return "en"
         else:
             return None
 
@@ -126,9 +127,9 @@ class Spellchecker:
             if i in stop_en or i in self.top_en[:200]:
                 en_score += 1
         if de_score > en_score:
-            return "german"
+            return "de"
         elif en_score > de_score:
-            return "english"
+            return "en"
         else:
             return None
 
@@ -143,7 +144,7 @@ class Spellchecker:
         freq_de = []
         freq_en = []
         for i,j in freq:
-            if self.is_language(j) == 'german':
+            if self.is_language(j) == 'de':
                 freq_de.append(j)
             else:
                 freq_en.append(j)
@@ -182,7 +183,7 @@ class Spellchecker:
         #here we search post by post to determin if term in index
         # is German or English, to see if in the context it is a misspell
             for post in self.term_index[word]:
-                if self.language(post) == 'german':
+                if self.language(post) == 'de':
                     ## get german misspelling count
                     if de_lemma not in self.de_dic:
                         if len([i for i in en_lemma.keys() if i in self.en_dic]) == 0:
@@ -191,7 +192,7 @@ class Spellchecker:
                     else:
                         self.terms_de.add(word)
                         
-                elif self.language(post) == 'english':
+                elif self.language(post) == 'en':
 
                     ## get german misspelling count
                     if len([i for i in en_lemma.keys() if i in self.en_dic]) == 0:
@@ -204,7 +205,7 @@ class Spellchecker:
             #It falls back to the likelihood of based on occurance in German or English Tweets 
                 else:
                     lang = self.is_language(word)
-                    if lang == 'german':
+                    if lang == 'de':
                         
                         ## get german misspelling count    
                         if de_lemma not in self.de_dic:
@@ -213,7 +214,7 @@ class Spellchecker:
                                 g_posts.append(post)
                         else:
                             self.terms_de.add(word)
-                    if lang == 'english':
+                    if lang == 'en':
                         ## get english misspelling count
                         if len([i for i in en_lemma.keys() if i in self.en_dic]) == 0:
                             e_count += 1
@@ -230,7 +231,7 @@ class Spellchecker:
         return sorted(de)[::-1], sorted(en)[::-1]
 
     
-    def damerau(self, word, lang):
+    def _damerau(self, word, lang):
         """
         calculates the Damerau distance of the misspelled words 
         """
@@ -265,7 +266,7 @@ class Spellchecker:
         
         return possible
     #This function finds the suggested terms based on the damerau distance for English words
-    def en_suggested(self,term,lang):
+    def _en_suggested(self,term):
         """
         Finds the suggested terms based on the damerau distance for English words
         """
@@ -277,7 +278,7 @@ class Spellchecker:
     #         return 'going to'
     #     if term == 'wanna':
     #         return 'want to'
-        suggestions = self.damerau(term,lang)
+        suggestions = self._damerau(term,"en")
         suggested = []
         #Lemmatizing the suggestions to get a more accurate reference
         for i in suggestions.keys():
@@ -298,11 +299,11 @@ class Spellchecker:
         except:
             return refined
 
-    def de_suggested(self,term,lang):
+    def _de_suggested(self,term):
         """
         Finds the suggested terms based on the damerau distance for German words
         """
-        suggestions = self.damerau(term, lang)
+        suggestions = self._damerau(term, "de")
         suggested = []
         for i in suggestions:
             if i in self.de_dic:
@@ -319,12 +320,12 @@ class Spellchecker:
     def display_top_mispells(self, en_mis, de_mis):
         top_mis_en = []
         for count, word, posts in en_mis[:10]:
-            top_mis_en.append((word, count, self.en_suggested(word)))
+            top_mis_en.append((word, count, self._en_suggested(word)))
 
         #This gives us the top misspelled German words
         top_mis_de = []
         for count, word, posts in de_mis[:10]:
-            top_mis_de.append((word, count, self.de_suggested(word)))
+            top_mis_de.append((word, count, self._de_suggested(word)))
         
         print("Top mispelled English words")
         for entry in top_mis_en:
